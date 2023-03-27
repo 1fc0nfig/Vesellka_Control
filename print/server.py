@@ -51,6 +51,9 @@ while True:
           except:
             print("Error: image.py cannot be executed")
             pass
+      if "TRACK" in data and time.time() - start > 5:
+          print(data)
+          
     except KeyboardInterrupt:
         print("Exiting...")
         serial.close()

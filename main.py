@@ -31,6 +31,30 @@ def led_init_sequence(led_strips, num_pixels=2, delay=0.05):
             strip.write()
             time.sleep(delay)
 
+def indicate_print_error(led_strip, led_strip_pixel_num, error_color=(255, 0, 0, 255), delay=0.1):
+    # LIGHT UP THE LIGHTSTRIP
+    for i in range(3):
+        # TURN RED
+        time.sleep(delay)
+        for i in range(light_strip_pixel_num):
+            if i > 23:
+                light_strip[i] = (255, 0, 0, 0)
+                light_strip.write()
+        # TURN OFF
+        time.sleep(delay)
+        for i in range(light_strip_pixel_num):
+            if i > 23:
+                light_strip[i] = (0, 0, 0, 0)
+                light_strip.write()
+    
+    time.sleep(delay)
+    # TURN WHITE
+    for i in range(light_strip_pixel_num):
+            if i > 23:
+                light_strip[i] = (0, 0, 0, 255)
+                light_strip.write()
+            
+
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 
 # Faders
@@ -90,12 +114,15 @@ for i in range(3):
     led.value = False
     time.sleep(0.1)
 
-# led_init_sequence(led_strips)
-
+# INIT SEQUENCE
+led_init_sequence(led_strips)
+# LIGHT UP THE LIGHTSTRIP
 for i in range(light_strip_pixel_num):
     light_strip[i] = (0, 0, 0, 255)
     light_strip.write()
     time.sleep(0.1)
+
+indicate_print_error(light_strip, light_strip_pixel_num)
 
 # Main loop
 while True:
@@ -123,8 +150,8 @@ while True:
             if not pressed[button_index]:
                 # Midi buttons
                 # track buttons
-                if button_index >= 0 and button_index < 5:
-                    print("track")
+                if button_index >= 0 and button_index <= 4:
+                    print("TRACK: Sending note " + str(36 + button_index))
                     # Turn off the LED strip of the last pressed button if it's not None
                     if last_pressed is not None:
                         led_strips[last_pressed][0] = (0, 0, 0, 0)
@@ -141,8 +168,8 @@ while True:
                     # Update last_pressed
                     last_pressed = button_index
                 # FX buttons
-                if button_index > 4 and button_index < 8:
-                    print("fx")
+                if button_index >= 5 and button_index <= 7:
+                    print("FX: Sending note " + str(36 + button_index))
                     # Turn off the LED strip of the last pressed button if it's not None
                     # TODO: Change lighting of the last pressed button
                     # TODO: Turn of toggle on switch
@@ -160,6 +187,7 @@ while True:
                     
                     # Update last_pressed
                     last_pressed = button_index
+
                 # Print button
                 if button_index == 8:
                     print("print")
@@ -172,9 +200,23 @@ while True:
                     
                     # Update last_pressed
                     last_pressed = button_index
+                    
+                # Option button
+                if button_index == 9:
+                    print("OPTION")
+                    pressed[button_index] = True
+                    led.value = True
+                    last_pressed = button_index
 
         else:
-            if pressed[button_index]:
+            if pressed[button_index] and button_index >= 0 and button_index <= 5:
                 pressed[button_index] = False
                 led.value = False
                 midi.send(NoteOff(36 + button_index, 0))
+            else :
+                pressed[button_index] = False
+                led.value = False
+                midi.send(NoteOff(36 + button_index, 0))
+                # Turn off the corresponding LED strip
+                for i in range(num_pixels):
+                    led_strips[button_index][i] = (0, 0, 0, 0)
