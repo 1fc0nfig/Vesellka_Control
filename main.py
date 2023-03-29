@@ -66,6 +66,13 @@ fader_3 = analogio.AnalogIn(board.A2)
 faders.extend([fader_1, fader_2, fader_3])
 fader_last_value = [0, 0, 0]
 
+# Set up variables for moving average filter
+num_samples = 3
+sample_index = 0
+samples = [[] for _ in range(len(faders))]
+averages = [0 for _ in range(len(faders))]
+fader_last_average = [0 for _ in range(len(faders))]
+
 # LED strips
 num_pixels = 2
 led_pins = [board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18]
@@ -77,11 +84,9 @@ light_pin = board.GP19
 light_strip = neopixel.NeoPixel(light_pin, light_strip_pixel_num, bpp=4)
 light_strip.brightness = brightness
 
-
 # Lightstrip brightness
 for strip in led_strips:
     strip.brightness = brightness
-
 
 # Add a new variable to store the index of the last pressed button
 last_pressed = None
@@ -101,12 +106,6 @@ pressed = [False] * len(track_pins)
 # Onboard LED
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
-
-# Moving average filter and threshold for faders
-moving_average_size = 50
-fader_threshold = 500
-fader_raw_values = [[], [], []]
-fader_raw_average_values = [0, 0, 0]
 
 # Blink the onboard LED to indicate a startup
 for i in range(3):
@@ -130,27 +129,28 @@ print("READY!")
 
 # Main loop
 while True:
-    # Faders
     for fad_index, fade in enumerate(faders):
-
-        fader_raw_values[fad_index].append(fade.value)
-        if len(fader_raw_values[fad_index]) > moving_average_size:
-            fader_raw_values[fad_index].pop(0)
-            
-        average_value = sum(fader_raw_values[fad_index]) / len(fader_raw_values[fad_index])
-        value_difference = abs(average_value - fader_raw_average_values[fad_index])
-        led.value = False
-
-        if value_difference > fader_threshold:
-            fader_raw_average_values[fad_index] = average_value
-            mapped_value = int(127 * average_value / 65535)
-
-            # print("Fader " + str(fad_index + 1) + ": " + str(mapped_value))
-
-            if mapped_value != fader_last_value[fad_index]:
-                fader_last_value[fad_index] = mapped_value
-                led.value = True
-                midi.send(ControlChange(14 + fad_index, mapped_value))
+        # Get current value
+        raw = fade.value
+        upper_bits = (raw >> 9) & 0b1111111
+        upper_int = int(upper_bits)
+        
+        # Add current value to sample buffer
+        samples[fad_index].append(upper_int)
+        if len(samples[fad_index]) > num_samples:
+            samples[fad_index].pop(0)
+        
+        # Calculate moving average
+        total = sum(samples[fad_index])
+        averages[fad_index] = total / len(samples[fad_index])
+        
+        # Compare with previous average
+        if abs(averages[fad_index] - fader_last_average[fad_index]) > 0.5:
+            # Send MIDI message here 
+            led.value = True
+            midi.send(ControlChange(14 + fad_index, int(averages[fad_index])))
+            # Update previous average
+            fader_last_average[fad_index] = averages[fad_index]
 
     # Buttons and LEDs
     for button_index, but in enumerate(buttons):
