@@ -9,6 +9,7 @@ import analogio
 import busio
 import usb_midi
 import neopixel
+import supervisor
 
 import adafruit_midi
 from adafruit_midi.note_off import NoteOff
@@ -69,7 +70,7 @@ fader_last_value = [0, 0, 0]
 num_pixels = 2
 led_pins = [board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18]
 led_strips = [neopixel.NeoPixel(pin, num_pixels, bpp=4) for pin in led_pins]
-brightness = 0.1
+brightness = 1
 
 light_strip_pixel_num = 40
 light_pin = board.GP19
@@ -114,23 +115,28 @@ for i in range(3):
     led.value = False
     time.sleep(0.1)
 
-# INIT SEQUENCE
-led_init_sequence(led_strips)
-# LIGHT UP THE LIGHTSTRIP
-for i in range(light_strip_pixel_num):
-    light_strip[i] = (0, 0, 0, 255)
-    light_strip.write()
-    time.sleep(0.1)
+print("INITIALIZING...")
+# # INIT SEQUENCE
+# led_init_sequence(led_strips, delay=0)
+# # LIGHT UP THE LIGHTSTRIP
+# for i in range(light_strip_pixel_num):
+#     light_strip[i] = (0, 0, 0, 255)
+#     light_strip.write()
+#     time.sleep(0.1)
 
-indicate_print_error(light_strip, light_strip_pixel_num)
+# # indicate_print_error(light_strip, light_strip_pixel_num)
+
+print("READY!")
 
 # Main loop
 while True:
     # Faders
     for fad_index, fade in enumerate(faders):
+
         fader_raw_values[fad_index].append(fade.value)
         if len(fader_raw_values[fad_index]) > moving_average_size:
             fader_raw_values[fad_index].pop(0)
+            
         average_value = sum(fader_raw_values[fad_index]) / len(fader_raw_values[fad_index])
         value_difference = abs(average_value - fader_raw_average_values[fad_index])
         led.value = False
@@ -139,6 +145,8 @@ while True:
             fader_raw_average_values[fad_index] = average_value
             mapped_value = int(127 * average_value / 65535)
 
+            # print("Fader " + str(fad_index + 1) + ": " + str(mapped_value))
+
             if mapped_value != fader_last_value[fad_index]:
                 fader_last_value[fad_index] = mapped_value
                 led.value = True
@@ -146,36 +154,52 @@ while True:
 
     # Buttons and LEDs
     for button_index, but in enumerate(buttons):
+        # True of button is pressed
         if but.value:
-            if not pressed[button_index]:
-                # Midi buttons
-                # track buttons
-                if button_index >= 0 and button_index <= 4:
-                    print("TRACK: Sending note " + str(36 + button_index))
-                    # Turn off the LED strip of the last pressed button if it's not None
-                    if last_pressed is not None:
-                        led_strips[last_pressed][0] = (0, 0, 0, 0)
-                        led_strips[last_pressed][1] = (0, 0, 0, 0)
+            if not pressed[9]:
+                if not pressed[button_index]:
+                    # Midi buttons
+                    # track buttons
+                    if button_index >= 0 and button_index <= 4:
+                        print("TRACK: Sending note " + str(36 + button_index))
+                        # Turn off the LED strip of the last pressed button if it's not None
+                        if last_pressed is not None:
+                            led_strips[last_pressed][0] = (0, 0, 0, 0)
+                            led_strips[last_pressed][1] = (0, 0, 0, 0)
 
-                    pressed[button_index] = True
-                    led.value = True
-                    midi.send(NoteOn(36 + button_index, 127))
+                        pressed[button_index] = True
+                        led.value = True
+                        midi.send(NoteOn(36 + button_index, 127))
+                        
+                        # Turn on the corresponding LED strip
+                        for i in range(num_pixels):
+                            led_strips[button_index][i] = (100, 100, 100, 255)
+                        
+                        # Update last_pressed
+                        last_pressed = button_index
                     
-                    # Turn on the corresponding LED strip
-                    for i in range(num_pixels):
-                        led_strips[button_index][i] = (100, 100, 100, 255)
+                    # Print button
+                    if button_index == 8:
+                        print("print")
+                        pressed[button_index] = True
+                        led.value = True
+
+                        # Turn on the corresponding LED strip
+                        for i in range(num_pixels):
+                            led_strips[button_index][i] = (100, 100, 100, 255)
+                        
+                        # Update last_pressed
+                        last_pressed = button_index
                     
-                    # Update last_pressed
-                    last_pressed = button_index
+                    # OPTION button
+                    if button_index == 9:
+                        print("option")
+                        pressed[button_index] = True
+                        led.value = True
+
                 # FX buttons
-                if button_index >= 5 and button_index <= 7:
+                if button_index >= 5 and button_index <= 7 and not pressed[button_index]:
                     print("FX: Sending note " + str(36 + button_index))
-                    # Turn off the LED strip of the last pressed button if it's not None
-                    # TODO: Change lighting of the last pressed button
-                    # TODO: Turn of toggle on switch
-                    if last_pressed is not None:
-                        led_strips[last_pressed][0] = (0, 0, 0, 0)
-                        led_strips[last_pressed][1] = (0, 0, 0, 0)
 
                     pressed[button_index] = True
                     led.value = True
@@ -184,39 +208,34 @@ while True:
                     # Turn on the corresponding LED strip
                     for i in range(num_pixels):
                         led_strips[button_index][i] = (100, 100, 100, 255)
-                    
-                    # Update last_pressed
-                    last_pressed = button_index
 
-                # Print button
-                if button_index == 8:
-                    print("print")
-                    pressed[button_index] = True
-                    led.value = True
+            # OPTION key combinations
+            else:
+                if not pressed[button_index]:
+                    if button_index == 0:
+                        print("option + track 1")
+                        led.value = True
+                        pressed[button_index] = True
 
-                    # Turn on the corresponding LED strip
-                    for i in range(num_pixels):
-                        led_strips[button_index][i] = (100, 100, 100, 255)
-                    
-                    # Update last_pressed
-                    last_pressed = button_index
-                    
-                # Option button
-                if button_index == 9:
-                    print("OPTION")
-                    pressed[button_index] = True
-                    led.value = True
-                    last_pressed = button_index
-
+                        # Perform reload
+                        supervisor.reload()
+        
+        # Release handler
         else:
-            if pressed[button_index] and button_index >= 0 and button_index <= 5:
+            # Send midi off signal for the track and fx buttons
+            if pressed[button_index] and button_index < 8:
                 pressed[button_index] = False
                 led.value = False
                 midi.send(NoteOff(36 + button_index, 0))
-            else :
+
+            # Do not send midi off signal for the print and option button
+            elif pressed[button_index] and button_index >= 8 and button_index <= 9:
                 pressed[button_index] = False
                 led.value = False
-                midi.send(NoteOff(36 + button_index, 0))
-                # Turn off the corresponding LED strip
-                for i in range(num_pixels):
-                    led_strips[button_index][i] = (0, 0, 0, 0)
+
+            else:
+                # Turn off the "FX" button LEDs when the button is released
+                if button_index >= 5 and button_index <= 7:
+                    for i in range(num_pixels):
+                        led_strips[button_index][i] = (0, 0, 0, 0)
+            
