@@ -1,3 +1,5 @@
+# Generates an image and sends it to a printer
+
 from PIL import Image, ImageDraw, ImageFont
 import time
 import os

@@ -4,3 +4,4 @@ Pillow==9.4.0
 pyserial==3.5
 PyYAML==6.0
 serial==0.0.97
+brother-ql==0.9.4

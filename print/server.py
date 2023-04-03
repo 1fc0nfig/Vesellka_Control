@@ -13,6 +13,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--port", help="Serial port, 'ls /dev/tty*' on UNIX based systems", required=True)
 parser.add_argument("-b", "--baud", help="Baud rate, default: 9600", default=9600)
 
+last_track = None
+
 # parse arguments
 args = parser.parse_args()
 
@@ -41,17 +43,19 @@ while True:
       data = data.rstrip()
       # check if data is equal to "print"
       # check if 5 seconds have passed since last print
-      if data == "print" and time.time() - start > 5:
+      if data == "print" and time.time() - start > 5 and last_track != None:
           # start timer
           start = time.time()
           # execute image.py script
           print("Executing image.py")
           try:
+            # TODO Print track specific image
             os.system('python3 image.py')
           except:
             print("Error: image.py cannot be executed")
             pass
       if "TRACK" in data and time.time() - start > 5:
+          last_track = data
           print(data)
           
     except KeyboardInterrupt:
