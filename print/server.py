@@ -50,7 +50,10 @@ while True:
           print("Executing image.py")
           try:
             # TODO Print track specific image
-            os.system('python3 image.py')
+            # Execute the command and capture the output
+            output = os.popen('python3 image.py').read()
+            print(output)
+            print("––––––––")
           except:
             print("Error: image.py cannot be executed")
             pass
