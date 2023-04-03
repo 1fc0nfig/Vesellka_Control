@@ -1,11 +1,15 @@
 {
 	"folders": [
 		{
+			"name": "Vesellka_Control",
 			"path": "."
 		},
 		{
-			"path": "../../../../Volumes/CIRCUITPY"
+			"name": "CIRCUITPY",
+			"path": "/Volumes/CIRCUITPY"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.languageServer": "Pylance"
+	}
 }
