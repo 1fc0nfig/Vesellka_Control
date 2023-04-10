@@ -127,8 +127,20 @@ print("INITIALIZING...")
 
 print("READY!")
 
+midi_message = None
+
+# Create a serial connection
+ser = serial.Serial('/dev/ttyUSB0', 9600)
+
+# Read and display incoming serial communication
+while True:
+    if ser.in_waiting > 0:
+        message = ser.readline()
+        print("Received serial message:", message)
+
 # Main loop
 while True:
+
     for fad_index, fade in enumerate(faders):
         # Get current value
         raw = fade.value

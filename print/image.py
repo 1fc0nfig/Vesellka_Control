@@ -4,12 +4,22 @@ from PIL import Image, ImageDraw, ImageFont
 import time
 import os
 import random
+import argparse
 
 # Open the image file
 # image = Image.open('images/blank_2000x1000.png')
 
+# Argument Parser
+parser = argparse.ArgumentParser()
+parser.add_argument("-m", "--mood", help="Name of the mood", required=True)
+# parser.add_argument("-i", "--image", help="Path to image", required=True)
+
+# Parse arguments
+args = parser.parse_args()
+
 # Select random image from images folder
-image = Image.open('images/' + random.choice(os.listdir('images')))
+image = Image.open('images/'+ args.mood + "/" + random.choice(os.listdir('images/' + args.mood)))
+print(image)
 
 # Initialize the drawing context
 draw = ImageDraw.Draw(image)

@@ -10,13 +10,29 @@ import argparse
 # create argument parser
 parser = argparse.ArgumentParser()
 # add argument for serial port
-parser.add_argument("-p", "--port", help="Serial port, 'ls /dev/tty*' on UNIX based systems", required=True)
-parser.add_argument("-b", "--baud", help="Baud rate, default: 9600", default=9600)
+parser.add_argument(
+    "-p", "--port", help="Serial port, 'ls /dev/tty*' on UNIX based systems", required=True)
+parser.add_argument(
+    "-b", "--baud", help="Baud rate, default: 9600", default=9600)
 
 last_track = None
 
 # parse arguments
 args = parser.parse_args()
+
+
+def evaluate_mood(track):
+  print(track)
+  if "36" in track:
+    return "sunburn"
+  elif "37" in track:
+    return "constellation"
+  elif "38" in track:
+     return "lucky_quarter"
+  elif "39" in track:
+     return "curiosity"
+  else:
+     return None
 
 # try to open serial port
 try:
@@ -43,7 +59,8 @@ while True:
       data = data.rstrip()
       # check if data is equal to "print"
       # check if 5 seconds have passed since last print
-      if data == "print" and time.time() - start > 5 and last_track != None:
+      if data == "print" and time.time() - start > 5:
+          # TODO TRACK CHECK
           # start timer
           start = time.time()
           # execute image.py script
@@ -51,9 +68,17 @@ while True:
           try:
             # TODO Print track specific image
             # Execute the command and capture the output
-            output = os.popen('python3 image.py').read()
-            print(output)
-            print("––––––––")
+            mood = evaluate_mood(last_track)
+            print(mood)
+            if mood is not None:
+              output = os.popen('python3 image.py -m ' + mood).read()
+              if "Printing was successful" not in output:
+                print("Printing was not successful")
+                print("––––––––")
+            else:
+              print("No mood found")
+              print("––––––––")
+
           except:
             print("Error: image.py cannot be executed")
             pass
