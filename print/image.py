@@ -29,7 +29,7 @@ draw = ImageDraw.Draw(image)
 text = time.strftime("%d/%m/%Y %H:%M:%S")
 
 # Define the font size and font type
-font = ImageFont.truetype("PPMonumentExtended-Regular.ttf", 9)
+font = ImageFont.truetype("PPMonumentExtended-Regular.ttf", 18)
 
 # Define the text color
 color = (20, 20, 20)
@@ -37,8 +37,8 @@ color = (20, 20, 20)
 # Define the text position
 textbbox = draw.textbbox((0, 0), text, font=font)
 width, height = image.size
-x = (width - textbbox[2]) / 2
-y = ((height - textbbox[3]) / 4)*3 + 7
+x = ((width - textbbox[2]) / 2 ) - 5
+y = ((height - textbbox[3]) / 4)*3 + 60
 position = (x, y)
 
 # Add the text to the image
