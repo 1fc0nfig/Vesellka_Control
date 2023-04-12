@@ -57,6 +57,8 @@ def indicate_print_error(led_strip, led_strip_pixel_num, error_color=(255, 0, 0,
             
 
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+midi_in = adafruit_midi.MIDI(midi_in=usb_midi.ports[0], in_channel=0)
+
 
 # Faders
 faders = []
@@ -75,18 +77,22 @@ fader_last_average = [0 for _ in range(len(faders))]
 
 # LED strips
 num_pixels = 2
-led_pins = [board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18]
+led_pins = [board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP20]
 led_strips = [neopixel.NeoPixel(pin, num_pixels, bpp=4) for pin in led_pins]
 brightness = 1
 
 light_strip_pixel_num = 40
-light_pin = board.GP19
-light_strip = neopixel.NeoPixel(light_pin, light_strip_pixel_num, bpp=4)
+
+light_strip = neopixel.NeoPixel( board.GP19, light_strip_pixel_num, bpp=4)
 light_strip.brightness = brightness
+
+light_strip2 = neopixel.NeoPixel( board.GP18, light_strip_pixel_num, bpp=4)
+light_strip2.brightness = brightness
 
 # Lightstrip brightness
 for strip in led_strips:
     strip.brightness = brightness
+
 
 # Add a new variable to store the index of the last pressed button
 last_pressed = None
@@ -102,6 +108,7 @@ for pin in track_pins:
     buttons.append(tmp_pin)
 
 pressed = [False] * len(track_pins)
+print_pressed = False
 
 # Onboard LED
 led = digitalio.DigitalInOut(board.LED)
@@ -115,31 +122,30 @@ for i in range(3):
     time.sleep(0.1)
 
 print("INITIALIZING...")
-# # INIT SEQUENCE
-# led_init_sequence(led_strips, delay=0)
-# # LIGHT UP THE LIGHTSTRIP
-# for i in range(light_strip_pixel_num):
-#     light_strip[i] = (0, 0, 0, 255)
-#     light_strip.write()
-#     time.sleep(0.1)
 
-# # indicate_print_error(light_strip, light_strip_pixel_num)
+# # # INIT SEQUENCE
+led_init_sequence(led_strips, delay=0.01)
 
+# # # LIGHT UP THE LIGHTSTRIP
+for i in range(light_strip_pixel_num):
+    light_strip[i] = (0, 0, 0, 255)
+    light_strip.write()
+    time.sleep(0.01)
+
+for i in range(light_strip_pixel_num):
+    light_strip2[i] = (0, 0, 0, 255)
+    light_strip2.write()
+    time.sleep(0.01)
+
+indicate_print_error(light_strip, light_strip_pixel_num)
 print("READY!")
-
-midi_message = None
-
-# Create a serial connection
-ser = serial.Serial('/dev/ttyUSB0', 9600)
-
-# Read and display incoming serial communication
-while True:
-    if ser.in_waiting > 0:
-        message = ser.readline()
-        print("Received serial message:", message)
 
 # Main loop
 while True:
+    # Check for incoming MIDI messages
+    midi_in_msg = midi_in.receive()
+    if midi_in_msg:
+        print(midi_in_msg)
 
     for fad_index, fade in enumerate(faders):
         # Get current value
@@ -168,7 +174,7 @@ while True:
     for button_index, but in enumerate(buttons):
         # True of button is pressed
         if but.value:
-            if not pressed[9]:
+            if not pressed[9] and not pressed[8]:
                 if not pressed[button_index]:
                     # Midi buttons
                     # track buttons
@@ -193,16 +199,11 @@ while True:
                     # Print button
                     if button_index == 8:
                         print("print")
-                        pressed[button_index] = True
+                        pressed[8] = True
                         led.value = True
 
-                        # Turn on the corresponding LED strip
-                        for i in range(num_pixels):
-                            led_strips[button_index][i] = (100, 100, 100, 255)
-                        
-                        # Update last_pressed
-                        last_pressed = button_index
-                    
+                        last_pressed = last_pressed
+
                     # OPTION button
                     if button_index == 9:
                         print("option")
@@ -250,4 +251,3 @@ while True:
                 if button_index >= 5 and button_index <= 7:
                     for i in range(num_pixels):
                         led_strips[button_index][i] = (0, 0, 0, 0)
-            
